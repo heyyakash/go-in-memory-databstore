@@ -8,13 +8,14 @@ import (
 	"github.com/heyyakash/go-in-memory-datastore/datastore"
 	"github.com/heyyakash/go-in-memory-datastore/helper"
 	"github.com/heyyakash/go-in-memory-datastore/models"
+	"github.com/heyyakash/go-in-memory-datastore/qstore"
 )
 
 func HandlePostReq(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "POST" {
 		var req models.Request
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			helper.ResponseGenerator(w, models.Response{Message: "Invalid Command"}, http.StatusBadRequest)
+			helper.ResponseGenerator(w, models.Response{Error: "Invalid Command"}, http.StatusBadRequest)
 			return
 		}
 
@@ -23,9 +24,10 @@ func HandlePostReq(w http.ResponseWriter, r *http.Request) {
 		// Looking for command
 		switch args[0] {
 
+		// SET Commands
 		case "SET":
 			if len(args) < 3 {
-				helper.ResponseGenerator(w, models.Response{Message: "Invalid SET Command"}, http.StatusBadRequest)
+				helper.ResponseGenerator(w, models.Response{Error: "Invalid SET Command"}, http.StatusBadRequest)
 				return
 			}
 
@@ -45,30 +47,67 @@ func HandlePostReq(w http.ResponseWriter, r *http.Request) {
 			if len(args) >= 5 && args[3] == "EX" {
 				helper.CheckExpiry(w, args[4], &time)
 			} else if len(args) >= 5 && args[3] != "EX" {
-				helper.ResponseGenerator(w, models.Response{Message: "Invalid Commands"}, http.StatusBadRequest)
+				helper.ResponseGenerator(w, models.Response{Error: "Invalid Commands"}, http.StatusBadRequest)
 				return
 			}
 			// Check for condition after expirt
 			if len(args) == 6 {
 				helper.CheckCondition(w, args[5], key, &toSet)
 			}
-			
+
 			helper.SetFunction(w, key, value, toSet, time)
 
+		// GET comamnds
 		case "GET":
 			if len(args) < 2 || len(args) > 2 {
-				helper.ResponseGenerator(w, models.Response{Message: "Invalid Command"}, http.StatusBadRequest)
+				helper.ResponseGenerator(w, models.Response{Error: "Invalid Command"}, http.StatusBadRequest)
 				return
 			}
 			value, exists := datastore.KeyValueStore.GetValue(args[1])
 			print(datastore.KeyValueStore.Store[args[1]])
-			if exists == false {
-				helper.ResponseGenerator(w, models.Response{Message: "Key does not exists"}, http.StatusNotFound)
+			if !exists {
+				helper.ResponseGenerator(w, models.Response{Error: "Key does not exists"}, http.StatusNotFound)
 				return
 			}
-			helper.ResponseGenerator(w, models.Response{Message: value}, http.StatusOK)
+			helper.ResponseGenerator(w, models.Response{Value: value}, http.StatusOK)
 
+		// QPUSH
+		case "QPUSH":
+			if len(args) < 3 || len(args) > 3 {
+				helper.ResponseGenerator(w, models.Response{Error: "Invalid command"}, http.StatusBadRequest)
+				return
+			}
+			qname, value := args[1], args[2]
+			queue, exists := qstore.QStore.QueueExists(qname)
+			if !exists {
+				qstore.QStore.CreateQueue(qname)
+				qstore.QStore.Store[qname].Enqueue(value)
+				helper.ResponseGenerator(w, models.Response{Message: "Command Executed"}, http.StatusOK)
+				return
+			}
+			queue.Enqueue(value)
+			helper.ResponseGenerator(w, models.Response{Message: "Command Executed"}, http.StatusOK)
+
+		// QPOP
+		case "QPOP":
+			if len(args) < 2 || len(args) > 2 {
+				helper.ResponseGenerator(w, models.Response{Error: "Invalid command"}, http.StatusBadRequest)
+				return
+			}
+			qname := args[1]
+			queue, exists := qstore.QStore.QueueExists(qname)
+			if !exists {
+				helper.ResponseGenerator(w, models.Response{Error: "Queue does not exist"}, http.StatusNotFound)
+				return
+			}
+
+			val := queue.Dequeue()
+			helper.ResponseGenerator(w, models.Response{Value: val}, http.StatusOK)
+
+		// default
+		default:
+			helper.ResponseGenerator(w, models.Response{Error: "Invalid Command"}, http.StatusOK)
 		}
-
 	}
+
 }

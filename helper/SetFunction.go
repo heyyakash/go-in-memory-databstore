@@ -22,6 +22,6 @@ func SetFunction(w http.ResponseWriter, key string, value string, toSet bool, t 
 		}()
 	}
 	print(datastore.KeyValueStore.Store[key])
-	ResponseGenerator(w, models.Response{Message: "Command Executed"}, http.StatusOK)
+	ResponseGenerator(w, models.Response{Value: "Command Executed"}, http.StatusOK)
 	return
 }

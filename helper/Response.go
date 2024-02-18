@@ -5,7 +5,7 @@ import (
 	"net/http"
 )
 
-func ResponseGenerator(w http.ResponseWriter, message interface{}, status int) {
+func ResponseGenerator(w http.ResponseWriter, Value interface{}, status int) {
 	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(message)
+	json.NewEncoder(w).Encode(Value)
 }

@@ -18,7 +18,7 @@ func CheckCondition(w http.ResponseWriter, command string, key string, toSet *bo
 			*toSet = false
 		}
 	default:
-		ResponseGenerator(w, models.Response{Message: "Invalid 4th argument"}, http.StatusBadRequest)
+		ResponseGenerator(w, models.Response{Error: "Invalid 4th argument"}, http.StatusBadRequest)
 		return
 	}
 }
