@@ -33,7 +33,7 @@ func HandlePostReq(w http.ResponseWriter, r *http.Request) {
 			key := args[1]
 			value := args[2]
 			// Set to False by Default
-			toSet := false
+			toSet := true
 			// Set time to 0 by default
 			time := 0
 			// Check for  conditions
@@ -52,10 +52,7 @@ func HandlePostReq(w http.ResponseWriter, r *http.Request) {
 			if len(args) == 6 {
 				helper.CheckCondition(w, args[5], key, &toSet)
 			}
-			if len(args) == 3 {
-				toSet = true
-			}
-
+			
 			helper.SetFunction(w, key, value, toSet, time)
 
 		case "GET":
