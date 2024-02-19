@@ -73,7 +73,6 @@ func HandlePostReq(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			value, exists := datastore.KeyValueStore.GetValue(args[1])
-			print(datastore.KeyValueStore.Store[args[1]])
 			if !exists {
 				helper.ResponseGenerator(w, models.Response{Error: "Key does not exists"}, http.StatusNotFound)
 				return
