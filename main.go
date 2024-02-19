@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/heyyakash/go-in-memory-datastore/datastore"
@@ -13,5 +14,6 @@ func main() {
 	qstore.CreateNewQueueStore()
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", handlers.HandlePostReq)
+	log.Print("Server is listening at 8080")
 	http.ListenAndServe(":8080", mux)
 }

@@ -44,11 +44,14 @@ func (qs *QueueStore) CreateQueue(name string) {
 	}
 }
 
-func (q *Queue) Enqueue(value string) {
+func (q *Queue) Enqueue(valueArray []string) {
 	q.m.Lock()
 	defer q.m.Unlock()
 
-	q.Queue = append(q.Queue, value)
+	for _, v := range valueArray {
+		q.Queue = append(q.Queue, v)
+	}
+
 	q.condition.Signal()
 }
 

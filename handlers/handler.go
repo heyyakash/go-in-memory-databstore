@@ -73,19 +73,19 @@ func HandlePostReq(w http.ResponseWriter, r *http.Request) {
 
 		// QPUSH
 		case "QPUSH":
-			if len(args) < 3 || len(args) > 3 {
+			if len(args) < 3 {
 				helper.ResponseGenerator(w, models.Response{Error: "Invalid command"}, http.StatusBadRequest)
 				return
 			}
-			qname, value := args[1], args[2]
+			qname := args[1]
 			queue, exists := qstore.QStore.QueueExists(qname)
 			if !exists {
 				qstore.QStore.CreateQueue(qname)
-				qstore.QStore.Store[qname].Enqueue(value)
+				qstore.QStore.Store[qname].Enqueue(args[2:])
 				helper.ResponseGenerator(w, models.Response{Message: "Command Executed"}, http.StatusOK)
 				return
 			}
-			queue.Enqueue(value)
+			queue.Enqueue(args[2:])
 			helper.ResponseGenerator(w, models.Response{Message: "Command Executed"}, http.StatusOK)
 
 		// QPOP
@@ -119,6 +119,10 @@ func HandlePostReq(w http.ResponseWriter, r *http.Request) {
 			helper.CheckExpiry(w, args[2], &qtime)
 			val, err := queue.BQPop(qtime)
 			if err != nil {
+				if err.Error() == "context deadline exceeded" {
+					helper.ResponseGenerator(w, models.Response{Value: "null", Error: err.Error()}, http.StatusBadRequest)
+					return
+				}
 				helper.ResponseGenerator(w, models.Response{Error: err.Error()}, http.StatusBadRequest)
 				return
 			}
