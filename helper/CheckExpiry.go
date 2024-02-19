@@ -3,14 +3,13 @@ package helper
 import (
 	"net/http"
 	"strconv"
-
-	"github.com/heyyakash/go-in-memory-datastore/models"
 )
 
-func CheckExpiry(w http.ResponseWriter, command string, time *int) {
+func CheckExpiry(w http.ResponseWriter, command string, time *int) error {
 	i, err := strconv.Atoi(command)
 	if err != nil {
-		ResponseGenerator(w, models.Response{Error: "Invalid time provided"}, http.StatusBadRequest)
+		return err
 	}
 	*time = i
+	return nil
 }

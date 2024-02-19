@@ -40,19 +40,28 @@ func HandlePostReq(w http.ResponseWriter, r *http.Request) {
 			time := 0
 			// Check for  conditions
 			if len(args) == 4 {
-				helper.CheckCondition(w, args[3], key, &toSet)
+				if err := helper.CheckCondition(w, args[3], key, &toSet); err != nil {
+					helper.ResponseGenerator(w, models.Response{Error: err.Error()}, http.StatusBadRequest)
+					return
+				}
 			}
 
 			// Check for expriry
 			if len(args) >= 5 && args[3] == "EX" {
-				helper.CheckExpiry(w, args[4], &time)
+				if err := helper.CheckExpiry(w, args[4], &time); err != nil {
+					helper.ResponseGenerator(w, models.Response{Error: "Invalid time provided"}, http.StatusBadRequest)
+					return
+				}
 			} else if len(args) >= 5 && args[3] != "EX" {
 				helper.ResponseGenerator(w, models.Response{Error: "Invalid Commands"}, http.StatusBadRequest)
 				return
 			}
 			// Check for condition after expirt
 			if len(args) == 6 {
-				helper.CheckCondition(w, args[5], key, &toSet)
+				if err := helper.CheckCondition(w, args[5], key, &toSet); err != nil {
+					helper.ResponseGenerator(w, models.Response{Error: err.Error()}, http.StatusBadRequest)
+					return
+				}
 			}
 
 			helper.SetFunction(w, key, value, toSet, time)
@@ -116,7 +125,10 @@ func HandlePostReq(w http.ResponseWriter, r *http.Request) {
 				helper.ResponseGenerator(w, models.Response{Error: "Queue does not exist"}, http.StatusNotFound)
 				return
 			}
-			helper.CheckExpiry(w, args[2], &qtime)
+			if err := helper.CheckExpiry(w, args[2], &qtime); err != nil {
+				helper.ResponseGenerator(w, models.Response{Error: "Invalid time provided"}, http.StatusBadRequest)
+				return
+			}
 			val, err := queue.BQPop(qtime)
 			if err != nil {
 				if err.Error() == "context deadline exceeded" {

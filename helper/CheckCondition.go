@@ -1,13 +1,13 @@
 package helper
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/heyyakash/go-in-memory-datastore/datastore"
-	"github.com/heyyakash/go-in-memory-datastore/models"
 )
 
-func CheckCondition(w http.ResponseWriter, command string, key string, toSet *bool) {
+func CheckCondition(w http.ResponseWriter, command string, key string, toSet *bool) error {
 	switch command {
 	case "NX":
 		if exists := datastore.KeyValueStore.KeyExists(key); exists != false {
@@ -18,7 +18,7 @@ func CheckCondition(w http.ResponseWriter, command string, key string, toSet *bo
 			*toSet = false
 		}
 	default:
-		ResponseGenerator(w, models.Response{Error: "Invalid 4th argument"}, http.StatusBadRequest)
-		return
+		return errors.New("invalid 4th command")
 	}
+	return nil
 }
