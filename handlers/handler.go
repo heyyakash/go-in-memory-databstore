@@ -104,6 +104,26 @@ func HandlePostReq(w http.ResponseWriter, r *http.Request) {
 			val := queue.Dequeue()
 			helper.ResponseGenerator(w, models.Response{Value: val}, http.StatusOK)
 
+		//BQPOP
+		case "BQPOP":
+			if len(args) < 3 || len(args) > 3 {
+				helper.ResponseGenerator(w, models.Response{Error: "Invalid command"}, http.StatusBadRequest)
+				return
+			}
+			qname, qtime := args[1], 0
+			queue, exists := qstore.QStore.QueueExists(qname)
+			if !exists {
+				helper.ResponseGenerator(w, models.Response{Error: "Queue does not exist"}, http.StatusNotFound)
+				return
+			}
+			helper.CheckExpiry(w, args[2], &qtime)
+			val, err := queue.BQPop(qtime)
+			if err != nil {
+				helper.ResponseGenerator(w, models.Response{Error: err.Error()}, http.StatusBadRequest)
+				return
+			}
+			helper.ResponseGenerator(w, models.Response{Value: val}, http.StatusOK)
+
 		// default
 		default:
 			helper.ResponseGenerator(w, models.Response{Error: "Invalid Command"}, http.StatusOK)

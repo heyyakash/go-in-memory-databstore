@@ -1,10 +1,16 @@
 package qstore
 
-import "sync"
+import (
+	"context"
+	"log"
+	"sync"
+	"time"
+)
 
 type Queue struct {
-	m     sync.RWMutex
-	Queue []string
+	m         sync.Mutex
+	Queue     []string
+	condition *sync.Cond
 }
 
 type QueueStore struct {
@@ -33,7 +39,8 @@ func (qs *QueueStore) CreateQueue(name string) {
 	defer qs.m.Unlock()
 
 	qs.Store[name] = &Queue{
-		Queue: make([]string, 0),
+		Queue:     make([]string, 0),
+		condition: sync.NewCond(&sync.Mutex{}),
 	}
 }
 
@@ -42,6 +49,7 @@ func (q *Queue) Enqueue(value string) {
 	defer q.m.Unlock()
 
 	q.Queue = append(q.Queue, value)
+	q.condition.Signal()
 }
 
 func (q *Queue) Dequeue() string {
@@ -55,3 +63,64 @@ func (q *Queue) Dequeue() string {
 	q.Queue = q.Queue[1:]
 	return val
 }
+
+func (q *Queue) BQPop(qtime int) (string, error) {
+	waitOnCond := func(ctx context.Context, cond *sync.Cond, conditionMet func() bool) (string, error) {
+		stopf := context.AfterFunc(ctx, func() {
+			cond.L.Lock()
+			defer cond.L.Unlock()
+			cond.Broadcast()
+		})
+		defer stopf()
+		for !conditionMet() {
+			cond.Wait()
+			if ctx.Err() != nil {
+				return "", ctx.Err()
+			}
+		}
+
+		item := q.Queue[0]
+		q.Queue = q.Queue[1:]
+		return item, nil
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	defer wg.Wait()
+
+	var result string
+	var popErr error
+
+	go func() {
+		defer wg.Done()
+
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(qtime)*time.Second)
+		defer cancel()
+
+		q.condition.L.Lock()
+		defer q.condition.L.Unlock()
+
+		var err error
+		result, err = waitOnCond(ctx, q.condition, func() bool { return len(q.Queue) > 0 })
+		popErr = err
+		log.Print(result)
+	}()
+
+	wg.Wait()
+	return result, popErr
+}
+
+// stopf := context.AfterFunc(ctx, func() {
+// 	q.condition.L.Lock()
+// 	defer q.condition.L.Unlock()
+// 	q.condition.Broadcast()
+// })
+
+// defer stopf()
+// for len(q.Queue) == 0 {
+// 	q.condition.Wait()
+// }
+// item := q.Queue[0]
+// q.Queue = q.Queue[1:]
+
+// return item, nil
