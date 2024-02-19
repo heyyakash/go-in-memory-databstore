@@ -2,7 +2,6 @@ package qstore
 
 import (
 	"context"
-	"log"
 	"sync"
 	"time"
 )
@@ -67,7 +66,7 @@ func (q *Queue) Dequeue() string {
 	return val
 }
 
-func (q *Queue) BQPop(qtime int) (string, error) {
+func (q *Queue) BQPop(qtime float64) (string, error) {
 	waitOnCond := func(ctx context.Context, cond *sync.Cond, conditionMet func() bool) (string, error) {
 		stopf := context.AfterFunc(ctx, func() {
 			cond.L.Lock()
@@ -106,7 +105,6 @@ func (q *Queue) BQPop(qtime int) (string, error) {
 		var err error
 		result, err = waitOnCond(ctx, q.condition, func() bool { return len(q.Queue) > 0 })
 		popErr = err
-		log.Print(result)
 	}()
 
 	wg.Wait()

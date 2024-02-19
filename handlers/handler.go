@@ -119,7 +119,8 @@ func HandlePostReq(w http.ResponseWriter, r *http.Request) {
 				helper.ResponseGenerator(w, models.Response{Error: "Invalid command"}, http.StatusBadRequest)
 				return
 			}
-			qname, qtime := args[1], 0
+			qname := args[1]
+			var qtime float64 = 0
 			queue, exists := qstore.QStore.QueueExists(qname)
 			if !exists {
 				helper.ResponseGenerator(w, models.Response{Error: "Queue does not exist"}, http.StatusNotFound)
